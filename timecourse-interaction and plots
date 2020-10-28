@@ -22,6 +22,12 @@ condition
 
 #build dds DESeqDataSet object
 dds <- DESeqDataSetFromMatrix(countData=input, colData = coldata, design= ~ Time + Strain + Time:Strain) # design= ~ batch + condition, #Aboutn the warning message, We don’t actually need to pass DESeq2 the model matrix, instead we pass it the design formula and the sampleinfo it will build the matrix itself.
+dds$Time
+dds$Strain
+  # relevel the condition, change the level or reference
+  #dds$Time = relevel( dds$Time, "Time1")
+  #dds$Time
+
 #pre-filter the dataset
 nrow(dds)
 dds <- dds[ rowSums(counts(dds)) > 1, ] ## remove rows of the dds that have no counts, or only a single count across all samples
@@ -72,7 +78,7 @@ pheatmap(sampleDistMatrix,
          col=colors)
 
 ### printout the interaction result, without specifying, results() will print out the last comparison in the resultsNames(dds)
-res= results(dds, test="Wald")
+res= results(dds)
 res = res[order(res$padj),]
 head(res)
 summary(res)
