@@ -1,0 +1,36 @@
+dds <- makeExampleDESeqDataSet(n=100,m=18)
+dds$genotype <- factor(rep(rep(c("I","II","III"),each=3),2))
+design(dds) <- ~ genotype + condition + genotype:condition
+dds$condition
+[1] A A A A A A A A A B B B B B B B B B
+Levels: A B
+dds$genotype
+[1] I   I   I   II  II  II  III   III   III   I   I   I   II  II  II  III  III  III
+Levels: I   II   III
+dds <- DESeq(dds)
+resultsNames(dds)
+[1] "Intercept"              "genotype_II_vs_I" 
+[3] "genotype_III_vs_I"      "condition_B_vs_A" 
+[5] "genotypeII.conditionB"  "genotypeIII.conditionB"
+# the condition effect for genotype I (the main effect)（基因型I的条件效应，主要效应）
+results(dds, contrast=c("condition","B","A"))
+log2 fold change (MLE): condition B vs A 
+Wald test p-value: condition B vs A
+# the condition effect for genotype III.（基因型III的条件效应）
+# this is the main effect *plus* the interaction term （主要效应加上相互作用项）
+# (the extra condition effect in genotype III compared to genotype I).（基因型III与基因型I相比额外的条件作用效果）
+results(dds, contrast=list( c("condition_B_vs_A","genotypeIII.conditionB") ))
+log2 fold change (MLE): condition_B_vs_A+genotypeIII.conditionB effect 
+Wald test p-value: condition_B_vs_A+genotypeIII.conditionB effect
+# the interaction term for condition effect in genotype III vs genotype I.（基因型III与基因型I相比额外的条件作用效果）
+# this tests if the condition effect is different in III compared to I（检测了条件效果在基因型III与基因型I之间是否有区别）
+results(dds, name="genotypeIII.conditionB")
+log2 fold change (MLE): genotypeIII.conditionB 
+Wald test p-value: genotypeIII.conditionB 
+# the interaction term for condition effect in genotype III vs genotype II. （基因型III与基因型II相比额外的条件作用效果）
+# this tests if the condition effect is different in III compared to II（检测了条件效果在基因型III与基因型II之间是否有区别）
+results(dds, contrast=list("genotypeIII.conditionB", "genotypeII.conditionB"))
+log2 fold change (MLE): genotypeIII.conditionB vs genotypeII.conditionB 
+Wald test p-value: genotypeIII.conditionB vs genotypeII.conditionB
+# Note that a likelihood ratio could be used to test if there are any
+# differences in the condition effect between the three genotypes.
