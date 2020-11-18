@@ -1,0 +1,8 @@
+##https://support.bioconductor.org/p/62684/
+
+## Type I,  include genes which are DE at time 0
+full = formula(~ Time + Treat + Time:Treat), reduced = formula(~ Time)
+
+## Type II, normalized to time 0
+design(dds) <- ~ time + treat + time:treat
+dds <- DESeq(dds, test="LRT", reduced = ~ time + treat)
