@@ -1,3 +1,5 @@
+##https://www.jianshu.com/p/2689e9a1d10c
+
 dds <- makeExampleDESeqDataSet(n=100,m=18)
 dds$genotype <- factor(rep(rep(c("I","II","III"),each=3),2))
 design(dds) <- ~ genotype + condition + genotype:condition
