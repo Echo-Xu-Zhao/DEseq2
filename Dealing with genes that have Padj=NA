@@ -1,1 +1,13 @@
 https://support.bioconductor.org/p/76144/
+
+The genes with adjusted p-value of NA have less mean normalized counts than the optimal threshold. You can make the same plot as in the vignette to see how the power increases when the threshold increases.
+
+There's no right answer of exactly what filter to use, it's a sliding scale of "counts high enough to have good power to detect differential expression". One choice is to optimize the power, as detailed in the independent filtering reference by Bourgon, which is what you get by default.
+
+If you want to include more genes (so have less NA adjusted p-values) you can pick a lower threshold using this plot, and then:
+
+results(dds, independentFiltering=FALSE)
+
+res$pvalue[res$baseMean < x] <- NA
+
+res$padj <- p.adjust(res$pvalue, method="BH")
