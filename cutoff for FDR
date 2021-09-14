@@ -1,0 +1,3 @@
+https://www.biostars.org/p/209118/
+
+Think about what "false discovery rate" actually means. Whatever your FDR cutoff, that's the proportion of genes that you call as differentially expressed that you expect really aren't differentially expressed. So if you call 500 genes as DE with an FDR cutoff of 0.1, you expect 50 of them to be false positives. It all comes down to tolerance for Type 1 vs. Type 2 errors. In my current project, we're using a very strict FDR of 0.01, because we want to be really sure that any gene we call is the real thing. If we had more of a tolerance for false positives in the name of discovery, we'd use 0.05 or 0.1. I've seen some very good projects that went all the way up to 0.25! But you have to calibrate it to the goals of the project.
