@@ -1,0 +1,136 @@
+library(DESeq2)
+input <- read.table("featurecounts_matrix.txt", header=TRUE, sep = "\t",row.names = 1, stringsAsFactors = FALSE)
+head(input)
+
+######### The "condition effect for a specific group" can be found either i) by including an interaction term, or ii) by making a new factor variable which consists of unique combinations of group and condition
+genotype = rep(c("wt","wt", "ko", "ko"), each = 2)
+treatment = rep(c("normal", "h2o2","normal", "h2o2"), each = 2)
+nameD <- paste(genotype, treatment, c(rep(LETTERS[1:2], 2), rep(LETTERS[1:2], 2)), sep = "_")
+
+condition <- factor(rep(c("wt_normal","wt_h2o2","ko_normal","ko_h2o2"),each=2),
+                    levels=c("wt_normal","wt_h2o2","ko_normal","ko_h2o2"))
+condition
+
+coldata <- data.frame(row.names = nameD,condition=condition)
+coldata 
+colnames(input)<-row.names(coldata)
+coldata 
+
+#build dds DESeqDataSet object
+dds <- DESeqDataSetFromMatrix(countData=input, colData = coldata, design= ~ condition) ## contrast: condition as a single factor; interaction: two factors, ~ treatment + genotype 
+dds$treatment
+dds$genotype
+dds$condition
+
+#pre-filter the dataset
+nrow(dds)
+dds <- dds[ rowSums(counts(dds)) > 1, ] ## remove rows of the dds that have no counts, or only a single count across all samples
+nrow(dds)
+
+######### extracting normalized counts, this is only for visualization
+## Option1. divide each column of counts(dds) by sizeFactors(dds), only library size normalized
+dds <- estimateSizeFactors(dds)
+sizeFactors(dds)
+normalized_counts <- counts(dds, normalized=TRUE)
+nrow(normalized_counts)
+
+#sizeFactors(dds) = c(my_Values) # for changing defined sizefactors
+
+## Option2. transformed in either vsd or log transformed rld
+vsd <- vst(dds, blind=FALSE) # recommonded
+head(assay(vsd), 3)
+
+##PCA plot
+library(ggplot2)
+pcaData <- plotPCA(vsd, intgroup=c("condition"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=genotype, shape=treatment)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() +
+  theme(aspect.ratio=1,
+        axis.text = element_text(size=12, colour = "black"),
+        axis.title = element_text(size=12, colour = "black"),
+        legend.text = element_text(size=12, colour = "black"),
+        legend.title = element_text(size=12, colour = "black")
+  )
+
+## heatmap of the sample distances
+library(RColorBrewer)
+library(pheatmap)
+
+sampleDists <- dist(t(assay(vsd)), method = "euclidean")
+sampleDists <- round(sampleDists, 2)  ## round, keep integer after decimal
+
+
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(assay(vsd)$nameD)
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors,
+         cluster_rows = T,
+         cluster_cols = T,
+         show_rownames = TRUE,
+         show_colnames = TRUE,
+         display_numbers = sampleDists,
+         main = "Samples distance")
+
+### Contrast
+dds <- DESeq(dds)
+dds$condition
+
+res <- results(dds, contrast=c("condition","ko_normal","wt_normal"))
+head(res)
+summary(res)
+colnames(res)[2] <- "log2FoldChange_KOvsWT_normal"
+
+
+res2 <- results(dds, contrast=c("condition","ko_h2o2","wt_h2o2"))
+head(res2)
+summary(res2)
+colnames(res2)[2] <- "log2FoldChange_KOvsWT_h2o2"
+
+res3 <- results(dds, contrast=c("condition","wt_h2o2","wt_normal"))
+head(res3)
+summary(res3)
+colnames(res3)[2] <- "log2FoldChange_H2O2vsNorm_WT"
+
+res4 <- results(dds, contrast=c("condition","ko_h2o2","ko_normal"))
+head(res4)
+summary(res4)
+colnames(res4)[2] <- "log2FoldChange_KOvsWT_H2O2"
+
+
+merged <- cbind(normalized_counts, res, res2, res3, res4 ) ## cbind, the order of rows must be same, otherwise, use merge
+head(merged)
+
+
+####### Biomart annotation
+
+library("biomaRt")
+library("curl")
+
+mart <-  useMart(biomart="ENSEMBL_MART_ENSEMBL",
+                          dataset="mmusculus_gene_ensembl", 
+                          host="uswest.ensembl.org")
+
+my_ensembl_gene_id<-row.names(merged)
+
+#listAttributes(mart)
+mms_symbols<- getBM(attributes=c('ensembl_gene_id_version','external_gene_name',"description"),
+                    filters = 'ensembl_gene_id_version', values = my_ensembl_gene_id, mart = mart)
+
+ensembl_gene_id<-rownames(merged)
+merged2 <- cbind(ensembl_gene_id, merged)
+
+diff_name<-merge(merged2,mms_symbols, by.x="ensembl_gene_id", by.y="ensembl_gene_id_version")
+
+
+write.table(diff_name, "M4_allsample_DEseq2.txt", row.names = F, sep = "\t")
+
+
