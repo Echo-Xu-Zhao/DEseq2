@@ -115,9 +115,9 @@ head(merged)
 library("biomaRt")
 library("curl")
 
-mart <-  useMart(biomart="ENSEMBL_MART_ENSEMBL",
+mart <-  useEnsembl(biomart="ENSEMBL_MART_ENSEMBL",
                           dataset="mmusculus_gene_ensembl", 
-                          host="uswest.ensembl.org")
+                 mirror = "useast")
 
 my_ensembl_gene_id<-row.names(merged)
 
