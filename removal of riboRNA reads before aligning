@@ -1,0 +1,26 @@
+From https://www.biostars.org/p/87260/
+
+You could just remove rRNA reads before aligning your reads to your reference genome. There are a number of rRNA reads removal tools available. Recently, we also developed a rRNA reads detection software named RiboDetector (https://github.com/hzi-bifo/RiboDetector). Benchmarking: https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkac112/6533611 shows that RiboDetector is the most computationally efficient and most accurate software for rRNA reads removal. The analysis also suggests that rRNA reads should be removed before alignment, otherwise they could be mapped to certain coding genes which share partial sequence similarity to rRNAs.
+
+RiboDetector can be used out-of-the-box without any database:
+
+GPU mode:
+
+ribodetector -t 20 \
+-l 100 \
+-i inputs/reads.1.fq.gz inputs/reads.2.fq.gz \
+-m 10 \
+-e rrna \
+--chunk_size 256 \
+-o outputs/reads.nonrrna.1.fq outputs/reads.nonrrna.2.fq
+
+
+
+CPU mode
+
+ribodetector_cpu -t 20 \
+-l 100 \
+-i inputs/reads.1.fq.gz inputs/reads.2.fq.gz \
+-e rrna \
+--chunk_size 256 \
+-o outputs/reads.nonrrna.1.fq outputs/reads.nonrrna.2.fq
